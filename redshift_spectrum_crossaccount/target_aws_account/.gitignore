@@ -1,0 +1,5 @@
+.terraform/
+.terraform.*
+terraform.tfstate*
+notes.txt
+AWSCLIV2.pkg

@@ -3,10 +3,13 @@ locals {
   external_tables_key_encryptonly_access_list         = [for principal in var.external_tables_key_encryptonly_access : strcontains(principal, "arn:") ? principal : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:${principal}"]
   external_tables_key_encryptdecrypt_access_list      = [for principal in var.external_tables_key_encryptdecrypt_access : strcontains(principal, "arn:") ? principal : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:${principal}"]
   external_tables_crawler_roles_list                  = { for category in var.tables_categories : category => "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${local.external_tables_crawler_role_names[category]}" }
-  external_tables_key_encryptdecrypt_access_list_full = concat(local.external_tables_key_encryptdecrypt_access_list, [for role in local.external_tables_crawler_roles_list : role])
+  external_tables_redshift_roles_list                 = { for category in var.tables_categories : category => "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${local.external_tables_redshift_role_names[category]}" }
+  external_tables_key_encryptdecrypt_access_list_full = concat(local.external_tables_key_encryptdecrypt_access_list, [for role in local.external_tables_crawler_roles_list : role], [for role in local.external_tables_redshift_roles_list : role])
 }
 
 resource "aws_kms_key" "external_tables_key" {
+  provider = aws.glue_account
+
   description             = "KMS key to encrypt external tables in S3 bucket"
   deletion_window_in_days = 10
   key_usage               = "ENCRYPT_DECRYPT"
@@ -16,12 +19,15 @@ resource "aws_kms_key" "external_tables_key" {
 
 
 data "aws_iam_policy_document" "external_tables_key_access" {
+  provider = aws.glue_account
+
   statement {
     sid = "Allow key usage from any entity in the owner account"
 
     actions = [
       "kms:GenerateDataKey*",
       "kms:Encrypt",
+      "kms:Decrypt",
       "kms:DescribeKey",
       "kms:ReEncrypt*",
       "kms:RevokeGrant",
@@ -39,7 +45,7 @@ data "aws_iam_policy_document" "external_tables_key_access" {
     principals { # Allow access from the CloudWatch Logs service
       type = "Service"
       identifiers = [
-        "logs.amazonaws.com"
+        "logs.us-east-1.amazonaws.com"
       ]
     }
 

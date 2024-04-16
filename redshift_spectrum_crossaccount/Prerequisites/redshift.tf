@@ -1,4 +1,6 @@
 resource "aws_redshift_cluster" "generic-data-warehouse" {
+  provider = aws.redshift_account
+
   cluster_identifier     = "${var.environment}-${var.org_code}-cluster"
   database_name          = "exttablesdemo"
   master_username        = "admin"
@@ -19,7 +21,9 @@ resource "aws_redshift_cluster" "generic-data-warehouse" {
   }
 }
 
-resource "aws_redshift_cluster_iam_roles" "example" {
+resource "aws_redshift_cluster_iam_roles" "generic-data-warehouse" {
+  provider = aws.redshift_account
+
   cluster_identifier = aws_redshift_cluster.generic-data-warehouse.id
   iam_role_arns      = [aws_iam_role.external_tables_redshift_allow_assume.arn]
 }

@@ -1,9 +1,10 @@
 locals {
-  external_tables_crawler_role_names = { for category in var.tables_categories : category => "${local.external_tables_crawler_names[category]}_crawler_access" }
+  external_tables_crawler_role_names = { for category in var.tables_categories : category => "${local.external_tables_crawler_names[category]}-crawler-access" }
 }
 
-
 data "aws_iam_policy_document" "external_tables_crawler_access" {
+  provider = aws.glue_account
+
   for_each = toset(var.tables_categories)
 
   statement {
@@ -42,7 +43,7 @@ data "aws_iam_policy_document" "external_tables_crawler_access" {
   statement {
     sid = "ReadObjectsUnderTableCategoryFolder"
     actions = [
-      "s3:*",
+      "s3:GetObject",
     ]
 
     resources = [
@@ -55,6 +56,8 @@ data "aws_iam_policy_document" "external_tables_crawler_access" {
     sid = "EncryptLogGroup"
     actions = [
       "logs:AssociateKmsKey",
+      "logs:CreateLogGroup",
+      "logs:DescribeLogGroups"
     ]
 
     resources = [
@@ -65,6 +68,8 @@ data "aws_iam_policy_document" "external_tables_crawler_access" {
 }
 
 resource "aws_iam_policy" "external_tables_crawler_access" {
+  provider = aws.glue_account
+
   for_each = toset(var.tables_categories)
 
   name   = local.external_tables_crawler_role_names[each.value]
@@ -72,8 +77,9 @@ resource "aws_iam_policy" "external_tables_crawler_access" {
   policy = data.aws_iam_policy_document.external_tables_crawler_access[each.value].json
 }
 
-
 resource "aws_iam_role" "external_tables_crawler_access" {
+  provider = aws.glue_account
+
   for_each = toset(var.tables_categories)
 
   name               = local.external_tables_crawler_role_names[each.value]
@@ -94,12 +100,16 @@ EOF
 }
 
 resource "aws_iam_role_policy_attachment" "external_tables_crawler_access_custom" {
+  provider = aws.glue_account
+
   for_each   = toset(var.tables_categories)
   role       = aws_iam_role.external_tables_crawler_access[each.value].name
   policy_arn = aws_iam_policy.external_tables_crawler_access[each.value].arn
 }
 
 resource "aws_iam_role_policy_attachment" "external_tables_crawler_access_awsglueservicerole" {
+  provider = aws.glue_account
+
   for_each   = toset(var.tables_categories)
   role       = aws_iam_role.external_tables_crawler_access[each.value].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
