@@ -3,6 +3,8 @@ locals {
 }
 
 resource "aws_security_group" "generic_data_warehouse_sg" {
+  provider = aws.redshift_account
+
   name        = "${var.environment}-${var.org_code}-cluster-sg"
   description = "Allow connections to Generic Data Warehouse"
   vpc_id      = local.generic_data_warehouse_vpc_id
@@ -13,6 +15,8 @@ resource "aws_security_group" "generic_data_warehouse_sg" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "generic_data_warehouse_dbaccess" {
+  provider = aws.redshift_account
+
   for_each = toset(var.generic_data_warehouse_allowed_cidrs)
 
   security_group_id = aws_security_group.generic_data_warehouse_sg.id
