@@ -1,10 +1,14 @@
+# Add bucket policy with explicit deny to put objects under root folder or under top-level folders (table categories)
+# There will be additional limitations in IAM roles that publish their artifacts to be represented in Redshift.
+# Those will be generated based on information in table_publishers input variable, restricting principal to write to only allowed folder
+
 resource "aws_s3_bucket" "external_tables" {
   provider = aws.glue_account
 
-  bucket = "${var.org_code}-${var.environment}-external-tables"
+  bucket = "${var.org_code}-${var.environment}-exttables"
 
   tags = {
-    Name        = "${var.org_code}-${var.environment}-external-tables"
+    Name        = "${var.org_code}-${var.environment}-exttables"
     Environment = var.environment
   }
 }

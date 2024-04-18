@@ -1,5 +1,5 @@
 locals {
-  external_tables_crawler_names = { for category in var.tables_categories : category => "${var.environment}-exttables-${category}" }
+  external_tables_crawler_names = { for category in var.tables_categories : category => "${var.environment}-${var.org_code}-exttables-${category}" }
 }
 
 resource "aws_glue_catalog_database" "external_tables" {
@@ -16,7 +16,7 @@ resource "aws_glue_crawler" "external_tables" {
   for_each = toset(var.tables_categories)
 
   database_name          = aws_glue_catalog_database.external_tables[each.value].name
-  name                   = "${var.environment}-exttables-${each.value}"
+  name                   = local.external_tables_crawler_names[each.value]
   role                   = aws_iam_role.external_tables_crawler_access[each.value].arn
   security_configuration = aws_glue_security_configuration.external_tables.name
 
@@ -33,7 +33,7 @@ resource "aws_glue_crawler" "external_tables" {
 resource "aws_glue_security_configuration" "external_tables" {
   provider = aws.glue_account
 
-  name = "${var.environment}-exttables"
+  name = "${var.environment}-${var.org_code}-exttables"
 
   encryption_configuration {
     cloudwatch_encryption {

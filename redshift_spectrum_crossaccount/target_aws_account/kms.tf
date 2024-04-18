@@ -4,7 +4,9 @@ locals {
   external_tables_key_encryptdecrypt_access_list      = [for principal in var.external_tables_key_encryptdecrypt_access : strcontains(principal, "arn:") ? principal : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:${principal}"]
   external_tables_crawler_roles_list                  = { for category in var.tables_categories : category => "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${local.external_tables_crawler_role_names[category]}" }
   external_tables_redshift_roles_list                 = { for category in var.tables_categories : category => "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${local.external_tables_redshift_role_names[category]}" }
+  external_tables_publisher_roles_list                = { for publisher, properties in var.table_publishers : publisher => "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${local.external_tables_publisher_role_names[publisher]}" }
   external_tables_key_encryptdecrypt_access_list_full = concat(local.external_tables_key_encryptdecrypt_access_list, [for role in local.external_tables_crawler_roles_list : role], [for role in local.external_tables_redshift_roles_list : role])
+  external_tables_key_encryptonly_access_list_full    = concat(local.external_tables_key_encryptonly_access_list, [for role in local.external_tables_publisher_roles_list : role])
 }
 
 resource "aws_kms_key" "external_tables_key" {
@@ -17,6 +19,12 @@ resource "aws_kms_key" "external_tables_key" {
   is_enabled              = true
 }
 
+resource "aws_kms_alias" "external_tables_key" {
+  provider = aws.glue_account
+
+  name          = "alias/${var.environment}-${var.org_code}-exttables-key"
+  target_key_id = aws_kms_key.external_tables_key.key_id
+}
 
 data "aws_iam_policy_document" "external_tables_key_access" {
   provider = aws.glue_account
@@ -99,7 +107,7 @@ data "aws_iam_policy_document" "external_tables_key_access" {
       test     = "StringEquals"
       variable = "aws:PrincipalArn"
 
-      values = local.external_tables_key_encryptonly_access_list
+      values = local.external_tables_key_encryptonly_access_list_full
     }
 
     principals {
