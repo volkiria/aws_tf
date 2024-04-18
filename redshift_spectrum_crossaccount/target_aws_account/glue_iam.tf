@@ -1,5 +1,5 @@
 locals {
-  external_tables_crawler_role_names = { for category in var.tables_categories : category => "${local.external_tables_crawler_names[category]}-crawler-access" }
+  external_tables_crawler_role_names = { for category in var.tables_categories : category => "${local.external_tables_crawler_names[category]}-crawler" }
 }
 
 data "aws_iam_policy_document" "external_tables_crawler_access" {

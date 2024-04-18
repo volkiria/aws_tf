@@ -1,5 +1,5 @@
 locals {
-  external_tables_redshift_role_names = { for category in var.tables_categories : category => "${var.environment}-exttables-${category}-redshift-access" }
+  external_tables_redshift_role_names = { for category in var.tables_categories : category => "${var.environment}-${var.org_code}-exttables-${category}-redshift" }
 }
 
 data "aws_iam_policy_document" "external_tables_redshift_access" {
@@ -79,16 +79,6 @@ data "aws_iam_policy_document" "external_tables_redshift_access" {
       "arn:aws:glue:${var.region}:${data.aws_caller_identity.current.account_id}:table/${aws_glue_catalog_database.external_tables[each.value].name}/${each.value}"
     ]
   }
-
-  #  statement {
-  #    sid = "ListGlueDataCatalogTables"
-  #    actions = [
-  #      "glue:GetDatabases",
-  #      "glue:GetTables",
-  #    ]
-  #
-  #    resources = ["*"]
-  #  }
 }
 
 resource "aws_iam_policy" "external_tables_redshift_access" {
