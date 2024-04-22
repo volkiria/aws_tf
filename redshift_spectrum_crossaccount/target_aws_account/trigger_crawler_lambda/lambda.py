@@ -18,7 +18,6 @@ def trigger_crawler(event, context):
     check_crawler = glue_client.list_crawlers(Tags={'Name': crawler_name})
     if len(check_crawler["CrawlerNames"]) > 0:
         print('Triggering crawler: '+crawler_name)
-        glue_client = boto3.client('glue')
         response = glue_client.start_crawler(Name=crawler_name)
     else:
         print('Skip: No such crawler - '+crawler_name+'; Table category \''+table_category+'\' is not supported')
