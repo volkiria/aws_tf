@@ -59,6 +59,7 @@ data "aws_iam_policy_document" "external_tables_redshift_access" {
       "glue:GetTable",
       "glue:GetDatabases",
       "glue:GetTables",
+      "glue:GetPartitions", # subfolders under the "table" folder are considered by Glue crawler as partitions
     ]
 
     resources = [

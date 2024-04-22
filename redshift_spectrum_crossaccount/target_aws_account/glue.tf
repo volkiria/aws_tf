@@ -1,5 +1,6 @@
 locals {
-  external_tables_crawler_names = { for category in var.tables_categories : category => "${var.environment}-${var.org_code}-exttables-${category}" }
+  crawler_name_prefix           = "${var.environment}-${var.org_code}-exttables"
+  external_tables_crawler_names = { for category in var.tables_categories : category => "${local.crawler_name_prefix}-${category}" }
 }
 
 resource "aws_glue_catalog_database" "external_tables" {
@@ -8,6 +9,10 @@ resource "aws_glue_catalog_database" "external_tables" {
   for_each = toset(var.tables_categories)
 
   name = local.external_tables_crawler_names[each.value]
+
+  tags = {
+    Name = local.external_tables_crawler_names[each.value]
+  }
 }
 
 resource "aws_glue_crawler" "external_tables" {
@@ -26,6 +31,10 @@ resource "aws_glue_crawler" "external_tables" {
 
   s3_target {
     path = "s3://${aws_s3_bucket.external_tables.bucket}/${each.value}/"
+  }
+
+  tags = {
+    Name = local.external_tables_crawler_names[each.value]
   }
 }
 
