@@ -108,16 +108,109 @@ Following access is provided:
 - Access to read metadata from particular Database and tables of the Glue Data Catalog
 - Read access to S3 bucket's particular "table category" top level folder only
 
-### lambda.tf [TODO]
-This code will define lambda function that will be triggered by any object Put operations in S3 bucket. It will run respective crawler depending on the top-level folder where object was created/updated.
-All relevant data (if any required) from notification message will be pushed to crawler.
+### lambda.tf
+This code deploys Lambda using python code from "trigger_crawler_lambda" folder. This lambda is triggered by any object create or delete events in external tables S3 bucket. It analyzes object's key (particularly its path) to trigger respective crawler for re-crawl.
+Following resources are created:
+- Lambda function
+- lambda permission (to be used by S3 service to invoke lambda that will process event notification)
+- S3 notification for the external tables bucket
 
-This approach is used to overcome latency after new table file version publication and before updated data become available in Redshift for querying.
+### trigger_crawler_lambda/lambda.py
+This is a simple Python code that:
+- Analyzes incoming S3 notification event to determine if any of supported crawlers should be started 
+- Starts relevant crawler if event is concerned with the object in respective folder
+- Skips event if there is no changes in the data to be represented (e.g. if there is only folder was created)
 
-## Main code - source_aws_account [TODO]
- This code is aimed to create required infrastructure in accounts where publishing services reside
+### lambda_iam.tf
+This code creates IAM role for Lambda to obtain required permissions upon execution:
+- Allows to list crawlers
+- Allows to start only crawlers created by this same code
+
+
+## Main code - source_aws_account [WILL NOT BE IMPLEMENTED]
+
+It was planned initially to define in this part of code any infrastructure in accounts where publishing services reside. As if Demo it was supposed to be IAM roles to be assumed by EC2 service so EC2 instance could be used to emulate actions of publishing service
+
+It was decided at later point that IAM roles for such test may be created manually and added then toi the list of publishers in the main code
  
 
-## Demo Deployment [TODO]
+## Demo Deployment
 
-Here will be described steps to deploy Demo using this code
+### Deployment of prerequisites
+
+#### Configure input variables
+Prerequisites/inputs.tfvars file has some values assigned to each required input variable that will allow to deploy demo resources.
+There are some "dummy" values used as external AWS account IDs and ARNs that do not correspond to actual resources. This will not lead to deployment failure since all of them are used in the way that will not trigger verification of particular resource existence.
+Following input values may be configured:
+- **environment** - is used in the naming convention for the resources generated; may be modified, but should be kept aligned with the main code's input values (or data.tf in the main code should be modified to search for actual resources created as part of Prerequisites)
+- **org_code** - is used in the naming convention for the resources generated; may be modified, but should be kept aligned with the main code's input values (or data.tf in the main code should be modified to search for actual resources created as part of Prerequisites)
+- **region** - the region where resources will be created (if region for Prerequisite and main code will differ, then respective provider configurations in the main code should be configured appropriately; initially it is expected that all Demo resources are created in the same region)
+- **external_table_source_accounts** - if configured with an empty list [] value, the Demo is expected not to use possibility to separate Redshift and Glue+S3 infrastructure in different account. In any case at least account where Redshift cluster is created will be considered as potential source of external tables. 
+- **generic_data_warehouse_allowed_cidrs** - for simplification of the Demo deployment Redshift cluster created with this code is publicly accessible, but security group shoul be configured to allow access to 5439 port for any required for required IPs. At least IP address for the desktop used to deploy main code the demo need to be allowed (make sure to define IP in CIDR format)
+
+#### Deploy prerequisites
+
+Switch to the Prerequisites and execute terraform apply command while using input.tfvars.
+Following will be done:
+- Redshift cluster created with public access (for simplification)
+- Security Group will be created and assigned to Redshift cluster. If required SIDR was not configured as part of inputs, respective rule may be added manually
+- IAM role will be created and assigned to Redshift cluster allowing to assume all roles in "table-source" accounts with expected prefix, so cluster could obtain necessary Glue and S3 permissions to represent tables from supported table categories
+- IAM role will be created as "deployment role" In this code it only allows to generate temporary credentials for Redshift's master user for default database created as part of Redshift cluster. Following should be considered for real scenarios:
+  - If there is deployment role is assumed as part of CI/CD pipeline, this permissions may be added there while not creating a separate role
+  - It is not recommended to use master user for such operations, rather separate user with respective permissions should be created and used in deployment role
+
+### Deployment of the main code in target account
+
+With this Demo by "target account" it is considered account that is a target for external services to publish their "table-formatted" artifacts that should be represented in Redshift aas tables.
+Following categories of resources  will be created:
+- **Glue resources** that implements a set of databases and crawlers based on configuration from input.tfvars. Separate database and crawler is created to support each "table category"
+- **KMS key** that is used to encrypt any associated data - S3 objects, logs, glue metadata, etc.
+- **S3 bucket with folders** for each configured "table category" and "dummy" sub-folder representing dummy table (to ensure correct naming of the tables published at later point to the category folder)
+- **Lambda** that is listening for create ad delete events in the bucket and initiates re-crawl in case of need
+- [TODO] **SQS queues** to limit thr crawling vector to only modified files (to avoid re-crawling files that were not changed)
+- Set of IAM roles that may be assumed by only expected external principals:
+  - IAM roles to be assumed by **Glue crawlers** to scan S3 objects under relevant table category folder
+  - IAM roles to be assumed by **Redshift's external schemas** to read data from Glue database and respective S3 objects for relevant table category only
+  - IAM roles for the **external publishers** to write "table-formatted" artifacts under only expected folders in S3 bucket (as per configuration in the inputs.tfvars)
+  - IAM role for the **Lambda function** allowing it to start only supported Glue crawlers
+
+#### Configure input variables
+- **environment** - is used in the naming convention for the resources generated; may be modified, but should be kept aligned with the main code's input values (or data.tf should be modified to search for actual resources created as part of Prerequisites)
+- **org_code** - is used in the naming convention for the resources generated; may be modified, but should be kept aligned with the main code's input values (or data.tf should be modified to search for actual resources created as part of Prerequisites)
+- **region** - the region where resources will be created (if region for Prerequisite and main code will differ, then respective provider configurations in this part of code should be configured appropriately; initially it is expected that all Demo resources are created in the same region)
+- **tables_categories** - list of strings that defined supported table categories. If is expected that names would be 1-2 words interconnected with '-' character. These values will be used to generate AWS resource names and folders within S3 bucket, as well as patterns in policies. Example configuration is present in input.tfvars file
+- **table_publishers_roles** - list of supported external publishers with their associates IAM roles (could be the roles from external accounts) that will be allowed to assume publisher respective roles in this account (with all required permissions based on configuration in inputs.tfvars)
+- **table_publishers** - map of lists, where key represents the name of the service (aligned with the names in "table_publishers_roles") and value represents the list of objects that each define separate "table" that service will publish (each such object may define name of the table and table category that it will be assigned)
+- lists of principles to provide different level of access to KMS key: 
+  - **external_tables_key_administrator_access** - to provide administrative access; should never be empty (in real scenario if code is deployed using CI/CD pipeline it could be considered to add it as administrative principal)
+  - **external_tables_key_encryptonly_access** - to provide encrypt only access to the Key; any external publisher IAM role created with this code will be added to this access category (so they would not be able to read objects from S3 bucket even of by error access would be added to the role); this list is an option to include additional principals
+  - **external_tables_key_encryptdecrypt_access** - to provide encrypt and decrypt access to the Key; any Glue and Redshift IAM role created with this code will be added to this access category; this list is an option to provide additional principals
+
+#### Configure providers
+There are 3 providers defined in this part of Demo code:
+- hashicorp/aws provider with **"redshift_account"** alias - to access AWS account where Redshift cluster is deployed
+  - Here is configured to use pre-defined CLI profile on the desktop, though any valid configuration could be defined to access respective account
+  - Make sure that region is aligned with what was configured while deploying Prerequisites
+- hashicorp/aws provider with **"glue_account"** alias - to access AWS account where Glue and S3 resources are created (the main goal of this part of code)
+  - Here is configured to use pre-defined CLI profile on the desktop, though any valid configuration could be defined to access respective account
+- brainly/redshift provider with alias **"redshift_account"** alias - to access Redshift cluster using Deployment role created as part of Prerequisites. 
+  - Due to limitations (as of time of code creation) of this provider profile/role that will be used to assume then role from temporary_credentials section may not be defined, hence either default CLI provide should be defined or AWS_PROFILE variable pushed when terraform command executed, this profile should be allowed to assume deployment role from Redshift's account. With this implementation to simplify demo deployment mentioned role is configured to be assumable by the principal used to Deploy Prerequisites; hence the same profile should be used here.  
+  - To simplify Demo deployment major part of parameters for this provider are read from data sources (read from Redshift's account). This approach may be unacceptable in real scenario, in this case respective values should be configured manually of via additional input variables
+  - Make sure that region configured in temporary_credentials section is aligned with the region used to deploy Prerequisites (the region where deployment role exists)
+  - Make sure that IP address or range from where deployment will be performed was allowed to access Redshift cluster on port 5439 (check clusters security group inbound rules)
+
+### Deploy main code in target account
+
+Switch to the target_aws_account folder and execute terraform plan/apply commands while using input.tfvars.
+
+## Test Demo deployment
+
+To test deployed infrastructure:
+- prepare several CSV files 
+- place them in separate folders with some expected names (table names defined for the publishing services in the main code may be used) and place there
+- upload these folders under created top level folders (table categories) in the external tables S3 bucket
+- observe that respective Glue crawler was triggered and expected tables (including dummy table) were created for each table category (in respective Glue database)
+- Use Redshift's Query Editor (old implementation or v2) to connect to Redshift cluster using master user
+- Open Demo database (in code "exttablesdemo") and observe available tables under each external schema (table category) configured in inputs.tfvars in main code
+  - "dummy" tables should not appear in Redshift
+- Query each table to check if contents corresponds to the contents of CSV file
