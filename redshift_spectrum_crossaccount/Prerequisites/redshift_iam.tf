@@ -1,11 +1,11 @@
-# This role will be attached to Redshift cluster
-# The policy that allows assume any role in list of target accounts will be created
-# there will not be limitations for the list of roles in those accounts
-# The roles in target accounts will restrict principal that may assume it
 locals {
   external_tables_redshif_allowed_roles_toassume = [for account in concat(var.external_table_source_accounts, [data.aws_caller_identity.current.account_id]) : "arn:aws:iam::${account}:role/${var.environment}-${var.org_code}-exttables-*"]
 }
 
+# This role will be attached to Redshift cluster
+# The policy that allows assume any role in list of target accounts will be created
+# there will not be limitations for the list of roles in those accounts
+# The roles in target accounts will restrict principal that may assume it
 resource "aws_iam_role" "external_tables_redshift_allow_assume" {
   provider = aws.redshift_account
 

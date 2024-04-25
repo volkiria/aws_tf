@@ -24,15 +24,6 @@ resource "aws_lambda_function" "external_tables_trigger_crawler" {
   }
 }
 
-resource "aws_lambda_alias" "external_tables_trigger_crawler_latest" {
-  provider = aws.glue_account
-
-  name             = "latest"
-  description      = "Latest version of the ${aws_lambda_function.external_tables_trigger_crawler.function_name}"
-  function_name    = aws_lambda_function.external_tables_trigger_crawler.function_name
-  function_version = "$LATEST"
-}
-
 resource "aws_lambda_permission" "external_tables_trigger_crawler_s3_notifications" {
   provider = aws.glue_account
 
