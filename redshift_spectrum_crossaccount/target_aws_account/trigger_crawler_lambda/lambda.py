@@ -5,7 +5,8 @@ def trigger_crawler(event, context):
 
     environment = os.environ['ENVIRONMENT']
     crawler_name_prefix = os.environ['CRAWLER_NAME_PREFIX']
-    object_key = event['Records'][0]['s3']['object']['key']
+    message = json.loads(event['Records'][0]['Sns']['Message'])
+    object_key = message['Records'][0]['s3']['object']['key']
     folder_pattern = re.compile('.*/$')
     if folder_pattern.match(object_key):
         print('Skip: Folder creation event')

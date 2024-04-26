@@ -65,6 +65,33 @@ data "aws_iam_policy_document" "external_tables_crawler_access" {
     ]
   }
 
+  statement {
+    sid = "ListQueues"
+    actions = [
+      "sqs:ListQueues",
+    ]
+
+    resources = ["*"]
+  }
+
+  statement {
+    sid = "ReadS3NotificationsFromRelevantQueue"
+    actions = [
+      "sqs:DeleteMessage",
+      "sqs:GetQueueUrl",
+      "sqs:ListDeadLetterSourceQueues",
+      "sqs:ChangeMessageVisibility",
+      "sqs:PurgeQueue",
+      "sqs:ReceiveMessage",
+      "sqs:GetQueueAttributes",
+      "sqs:ListQueueTags",
+      "sqs:SetQueueAttributes",
+    ]
+
+    resources = [
+      aws_sqs_queue.external_tables_crawler_bucket_notifications[each.value].arn,
+    ]
+  }
 }
 
 resource "aws_iam_policy" "external_tables_crawler_access" {

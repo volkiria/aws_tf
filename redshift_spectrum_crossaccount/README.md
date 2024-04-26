@@ -31,6 +31,7 @@ Following values would be a requirement to the main code:
 ## Main code - target_aws_account
 
 ### s3.tf
+
 This part of code implements S3 bucket that would be used to publish data files within predefined but configurable folder/object structure within S3 bucket:
 - top-level folders are "table category" folders that have their pre-defined name pushed from tables_categories input variable
   - its name corresponds to the name of external schema in Redshift
@@ -44,8 +45,10 @@ This part of code implements S3 bucket that would be used to publish data files 
     - one particular publisher service (via IAM role) as configured in input variable table_publishers will be permitted to Put objects (to minimize the risk of publishing several tables under the same sub-folder, causing unexpected table naming in Redshift)
     - crawler that processes "table category" folder will be permitted to Get objects from "table category" and any of its sub-folders
     - Redshift spectrum external schema (via IAM role chaining; on the level of "table category" folder) will be permitted to Get from "table category" and any of its sub-folders
+- SNS topic and # notifications configuration that sends Create and Remove events thi this topic
 
 ### kms.tf
+
 This code creates KMS key used across the Glue and S3 resources for encryption:
 - creates KMS key
 - defines key access policy with 3 main levels of access:
@@ -56,7 +59,7 @@ This code creates KMS key used across the Glue and S3 resources for encryption:
     - access for any IAM role generated for Glue crawlers and Redshift Spectrum access
   - encrypt only access (to provide Write only access to the S3 bucket, but not Read access, expected to be used by external publishers)
     - access to principals defined in external_tables_key_encryptonly_access input variable
-    - [TODO] access for any IAM role generated for external publishers
+    - access for any IAM role generated for external publishers
 
 All variables mentioned above are lists of strings that may have 2 types of principle definitions:
 - short definitions is expected to be only a principle from the same account where Glue and S3 resources are hosted:
@@ -66,21 +69,29 @@ All variables mentioned above are lists of strings that may have 2 types of prin
   - these ARNs will be used as is
 
 ### glue.tf
+
 For this implementation only very basic Glue infrastructure would be defined, that does not utilize some valuable Glue features (e.g. LakeFormation for fine-grained access control):
 - Glue Data Catalog databases that correspond to "table category" folders 
-- Crawlers where each processes exactly one "table category" folder
+- Crawlers where each processes exactly one "table category" folder and re-crawl vector is limited to only changes made to respective top level folder only
 - Security configuration to encrypt all available artifacts that crawler creates
 
 ### glue_iam.tf
+
 This code creates a set of IAM roles to be assumed by Glue crawler (and respective policy) to provide required access:
 - Read access to "table category" folder and any sub-folders for respective crawler only
 - Permissions to configure encryption options and assign KMS key to its own CloudWatch Log group
+- Permissions to read messages from the SQS queue that has S3 events notifications for particular "table category"
 
-### glue_sqs.tf [TODO]
-This code creates SQS queue used by Glue crawler to only re-crawl modified files, avoiding full "table category"folder re-crawl. 
+### glue_sqs.tf 
+
+This code creates SQS queues used by Glue crawlers to only re-crawl modified files, avoiding full "table category" folder re-crawl. 
 This approach allows to reduce costs associated with Glue activities. This is not critical with Parquette files or with smaller CSV files representing table data. But it may generate considerable costs if extensive CSV files are published with the external service. This approach will ensure that Crawler will only re-crawl modified objects, avoiding undesired costs from re-crawling of unchanged objects.
+Following will be created:
+- Set of SQS queues (separate queue for each table category) with access policies that allow particular SNS topic (S3 notifications topic) to send messages in those queues
+- Set of SNS topic subscriptions with filter that requests only messages from particular "table category" folder only to be sent to respective queue  
 
 ### redshift.tf
+
 Prerequisites: It is expected that Redshift cluster's endpoint is available for network connections to port 5439 from the location where terraform code is been applied (e.g. using VPN connection).
 
 This code utilizes brainly/redshift terraform provider to create external schema in existing Redshift Cluster. With this implementation provider is configured using data sources to read:
@@ -102,6 +113,7 @@ This code communicates with Redshift Cluster's endpoint to create external schem
   - IAM role in Glue's account that provides access to Glue and S3 for the respective "table category" only (and only can be assumed by the cluster's role above)
 
 ### redshift_iam.tf
+
 This code generates IAM roles in Glue's account that provide required permissions to Redshift's external schemas to access respective "table category" resources (n Glue and S3)
 These IAM roles are defined so only Redshift Cluster's "allowassume" role could assume them, hence no other principal will be allowed to benefit from these permissions.
 Following access is provided:
@@ -109,19 +121,22 @@ Following access is provided:
 - Read access to S3 bucket's particular "table category" top level folder only
 
 ### lambda.tf
+
 This code deploys Lambda using python code from "trigger_crawler_lambda" folder. This lambda is triggered by any object create or delete events in external tables S3 bucket. It analyzes object's key (particularly its path) to trigger respective crawler for re-crawl.
 Following resources are created:
 - Lambda function
 - lambda permission (to be used by S3 service to invoke lambda that will process event notification)
-- S3 notification for the external tables bucket
+- SNS topic subscription to receive S3 bucket events
 
 ### trigger_crawler_lambda/lambda.py
+
 This is a simple Python code that:
 - Analyzes incoming S3 notification event to determine if any of supported crawlers should be started 
 - Starts relevant crawler if event is concerned with the object in respective folder
 - Skips event if there is no changes in the data to be represented (e.g. if there is only folder was created)
 
 ### lambda_iam.tf
+
 This code creates IAM role for Lambda to obtain required permissions upon execution:
 - Allows to list crawlers
 - Allows to start only crawlers created by this same code
@@ -139,6 +154,7 @@ It was decided at later point that IAM roles for such test may be created manual
 ### Deployment of prerequisites
 
 #### Configure input variables
+
 Prerequisites/inputs.tfvars file has some values assigned to each required input variable that will allow to deploy demo resources.
 There are some "dummy" values used as external AWS account IDs and ARNs that do not correspond to actual resources. This will not lead to deployment failure since all of them are used in the way that will not trigger verification of particular resource existence.
 Following input values may be configured:
@@ -167,7 +183,7 @@ Following categories of resources  will be created:
 - **KMS key** that is used to encrypt any associated data - S3 objects, logs, glue metadata, etc.
 - **S3 bucket with folders** for each configured "table category" and "dummy" sub-folder representing dummy table (to ensure correct naming of the tables published at later point to the category folder)
 - **Lambda** that is listening for create ad delete events in the bucket and initiates re-crawl in case of need
-- [TODO] **SQS queues** to limit thr crawling vector to only modified files (to avoid re-crawling files that were not changed)
+- **SQS queues** to limit thr crawling vector to only modified files (to avoid re-crawling files that were not changed)
 - Set of IAM roles that may be assumed by only expected external principals:
   - IAM roles to be assumed by **Glue crawlers** to scan S3 objects under relevant table category folder
   - IAM roles to be assumed by **Redshift's external schemas** to read data from Glue database and respective S3 objects for relevant table category only
@@ -175,6 +191,7 @@ Following categories of resources  will be created:
   - IAM role for the **Lambda function** allowing it to start only supported Glue crawlers
 
 #### Configure input variables
+
 - **environment** - is used in the naming convention for the resources generated; may be modified, but should be kept aligned with the main code's input values (or data.tf should be modified to search for actual resources created as part of Prerequisites)
 - **org_code** - is used in the naming convention for the resources generated; may be modified, but should be kept aligned with the main code's input values (or data.tf should be modified to search for actual resources created as part of Prerequisites)
 - **region** - the region where resources will be created (if region for Prerequisite and main code will differ, then respective provider configurations in this part of code should be configured appropriately; initially it is expected that all Demo resources are created in the same region)
@@ -187,6 +204,7 @@ Following categories of resources  will be created:
   - **external_tables_key_encryptdecrypt_access** - to provide encrypt and decrypt access to the Key; any Glue and Redshift IAM role created with this code will be added to this access category; this list is an option to provide additional principals
 
 #### Configure providers
+
 There are 3 providers defined in this part of Demo code:
 - hashicorp/aws provider with **"redshift_account"** alias - to access AWS account where Redshift cluster is deployed
   - Here is configured to use pre-defined CLI profile on the desktop, though any valid configuration could be defined to access respective account
@@ -214,3 +232,16 @@ To test deployed infrastructure:
 - Open Demo database (in code "exttablesdemo") and observe available tables under each external schema (table category) configured in inputs.tfvars in main code
   - "dummy" tables should not appear in Redshift
 - Query each table to check if contents corresponds to the contents of CSV file
+
+## Destroy Demo deployment
+
+Execute following steps:
+- **Delete data files from S3 bucket** 
+  - Once objects are deleted Crawlers will be triggered. Wait until Crawlers finish processing changes in bucket
+- **Destroy resources from main code folder**
+  - switch to "target_aws_account" folder
+  - run terraform destroy command
+- **Destroy resources from Prerequisites folder**
+  - switch to "Prerequisites" folder
+  - run terraform destroy command
+
