@@ -59,3 +59,56 @@ dummy;table
 0;0
 EOF
 }
+
+data "aws_iam_policy_document" "external_tables_bucket_notifications" {
+  provider = aws.glue_account
+
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["s3.amazonaws.com"]
+    }
+
+    actions   = ["SNS:Publish"]
+    resources = ["arn:aws:sns:*:*:${var.environment}-${var.org_code}-external-tables-notifications"]
+
+    condition {
+      test     = "ArnLike"
+      variable = "aws:SourceArn"
+      values   = [aws_s3_bucket.external_tables.arn]
+    }
+  }
+}
+
+resource "aws_sns_topic" "external_tables_bucket_notifications" {
+  provider = aws.glue_account
+
+  name   = "${var.environment}-${var.org_code}-external-tables-notifications"
+  policy = data.aws_iam_policy_document.external_tables_bucket_notifications.json
+}
+
+resource "aws_s3_bucket_notification" "external_tables_bucket_notifications" {
+  provider = aws.glue_account
+
+  bucket = aws_s3_bucket.external_tables.id
+
+  dynamic "topic" {
+    for_each = toset(var.tables_categories)
+
+    content {
+      id        = "${var.environment}-${var.org_code}-external-tables-notifications-${topic.value}"
+      topic_arn = aws_sns_topic.external_tables_bucket_notifications.arn
+      events = [
+        "s3:ObjectCreated:*",
+        "s3:ObjectRemoved:*",
+      ]
+      filter_prefix = "${topic.value}/"
+    }
+  }
+
+  depends_on = [
+    aws_sns_topic.external_tables_bucket_notifications
+  ]
+}

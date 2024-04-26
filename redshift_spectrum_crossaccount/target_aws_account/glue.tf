@@ -29,8 +29,13 @@ resource "aws_glue_crawler" "external_tables" {
     delete_behavior = "DELETE_FROM_DATABASE"
   }
 
+  recrawl_policy {
+    recrawl_behavior = "CRAWL_EVENT_MODE"
+  }
+
   s3_target {
-    path = "s3://${aws_s3_bucket.external_tables.bucket}/${each.value}/"
+    path            = "s3://${aws_s3_bucket.external_tables.bucket}/${each.value}/"
+    event_queue_arn = aws_sqs_queue.external_tables_crawler_bucket_notifications[each.value].arn
   }
 
   tags = {

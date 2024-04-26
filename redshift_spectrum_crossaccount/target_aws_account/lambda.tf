@@ -24,30 +24,20 @@ resource "aws_lambda_function" "external_tables_trigger_crawler" {
   }
 }
 
-resource "aws_lambda_permission" "external_tables_trigger_crawler_s3_notifications" {
+resource "aws_sns_topic_subscription" "external_tables_trigger_crawler" {
   provider = aws.glue_account
 
-  statement_id  = "AllowExecutionFromS3Bucket"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.external_tables_trigger_crawler.arn
-  principal     = "s3.amazonaws.com"
-  source_arn    = aws_s3_bucket.external_tables.arn
+  topic_arn = aws_sns_topic.external_tables_bucket_notifications.arn
+  protocol  = "lambda"
+  endpoint  = aws_lambda_function.external_tables_trigger_crawler.arn
 }
 
-resource "aws_s3_bucket_notification" "external_tables_trigger_crawler_s3_notifications" {
+resource "aws_lambda_permission" "external_tables_bucket_notifications" {
   provider = aws.glue_account
 
-  bucket = aws_s3_bucket.external_tables.id
-  lambda_function {
-    id                  = "${var.environment}-${var.org_code}-exttables-trigger-crawler"
-    lambda_function_arn = aws_lambda_function.external_tables_trigger_crawler.arn
-    events = [
-      "s3:ObjectCreated:*",
-      "s3:ObjectRemoved:*",
-    ]
-  }
-  depends_on = [
-    aws_lambda_permission.external_tables_trigger_crawler_s3_notifications,
-    aws_lambda_function.external_tables_trigger_crawler
-  ]
+  statement_id  = "AllowExecutionFromSNS"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.external_tables_trigger_crawler.function_name
+  principal     = "sns.amazonaws.com"
+  source_arn    = aws_sns_topic.external_tables_bucket_notifications.arn
 }
