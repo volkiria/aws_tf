@@ -102,6 +102,10 @@ resource "aws_iam_policy" "external_tables_crawler_access" {
   name   = local.external_tables_crawler_role_names[each.value]
   path   = "/"
   policy = data.aws_iam_policy_document.external_tables_crawler_access[each.value].json
+
+  tags = {
+    Name = local.external_tables_crawler_role_names[each.value]
+  }
 }
 
 resource "aws_iam_role" "external_tables_crawler_access" {
@@ -124,6 +128,10 @@ resource "aws_iam_role" "external_tables_crawler_access" {
   ]
 }
 EOF
+
+  tags = {
+    Name = local.external_tables_crawler_role_names[each.value]
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "external_tables_crawler_access_custom" {

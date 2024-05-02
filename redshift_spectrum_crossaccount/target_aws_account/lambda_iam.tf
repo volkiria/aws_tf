@@ -33,6 +33,10 @@ resource "aws_iam_policy" "external_tables_crawler_trigger_lambda_access" {
   name   = local.external_tables_crawler_trigger_lambda_role_name
   path   = "/"
   policy = data.aws_iam_policy_document.external_tables_crawler_trigger_lambda_access.json
+
+  tags = {
+    Name = local.external_tables_crawler_trigger_lambda_role_name
+  }
 }
 
 
@@ -54,6 +58,10 @@ resource "aws_iam_role" "external_tables_crawler_trigger_lambda_access" {
   ]
 }
 EOF
+
+  tags = {
+    Name = local.external_tables_crawler_trigger_lambda_role_name
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "external_tables_crawler_trigger_lambda_access" {

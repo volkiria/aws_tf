@@ -5,8 +5,8 @@ provider "aws" {
   profile = "ac-guru"
   default_tags {
     tags = {
-      environment = var.environment
-      purpose     = "Redshift Spectrum Demo"
+      Environment = var.environment
+      Purpose     = "Redshift Spectrum Demo"
     }
   }
 }

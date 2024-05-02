@@ -90,6 +90,10 @@ resource "aws_iam_policy" "external_tables_redshift_access" {
   name   = local.external_tables_redshift_role_names[each.value]
   path   = "/"
   policy = data.aws_iam_policy_document.external_tables_redshift_access[each.value].json
+
+  tags = {
+    Name = local.external_tables_redshift_role_names[each.value]
+  }
 }
 
 
@@ -113,6 +117,10 @@ resource "aws_iam_role" "external_tables_redshift_access" {
   ]
 }
 EOF
+
+  tags = {
+    Name = local.external_tables_redshift_role_names[each.value]
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "external_tables_redshift_access" {
