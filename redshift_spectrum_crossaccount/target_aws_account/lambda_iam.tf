@@ -39,7 +39,6 @@ resource "aws_iam_policy" "external_tables_crawler_trigger_lambda_access" {
   }
 }
 
-
 resource "aws_iam_role" "external_tables_crawler_trigger_lambda_access" {
   provider = aws.glue_account
 
@@ -69,6 +68,11 @@ resource "aws_iam_role_policy_attachment" "external_tables_crawler_trigger_lambd
 
   role       = aws_iam_role.external_tables_crawler_trigger_lambda_access.name
   policy_arn = aws_iam_policy.external_tables_crawler_trigger_lambda_access.arn
+
+  depends_on = [
+    aws_iam_role.external_tables_crawler_trigger_lambda_access,
+    aws_iam_policy.external_tables_crawler_trigger_lambda_access
+  ]
 }
 
 resource "aws_iam_role_policy_attachment" "external_tables_lambda_trigger_access_awslambdabasicexecutionrole" {
@@ -76,4 +80,8 @@ resource "aws_iam_role_policy_attachment" "external_tables_lambda_trigger_access
 
   role       = aws_iam_role.external_tables_crawler_trigger_lambda_access.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+
+  depends_on = [
+    aws_iam_role.external_tables_crawler_trigger_lambda_access
+  ]
 }

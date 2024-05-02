@@ -41,6 +41,13 @@ resource "aws_glue_crawler" "external_tables" {
   tags = {
     Name = local.external_tables_crawler_names[each.value]
   }
+
+  depends_on = [
+    aws_s3_bucket.external_tables,
+    aws_sqs_queue.external_tables_crawler_bucket_notifications,
+    aws_glue_security_configuration.external_tables,
+    aws_iam_role.external_tables_crawler_access
+  ]
 }
 
 # Security configuration do enable encryption of Glue metadata and logs
@@ -65,4 +72,8 @@ resource "aws_glue_security_configuration" "external_tables" {
       s3_encryption_mode = "SSE-KMS"
     }
   }
+
+  depends_on = [
+    aws_kms_key.external_tables_key
+  ]
 }

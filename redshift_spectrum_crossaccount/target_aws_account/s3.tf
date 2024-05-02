@@ -20,6 +20,10 @@ resource "aws_s3_bucket_ownership_controls" "external_tables" {
   rule {
     object_ownership = "BucketOwnerEnforced"
   }
+
+  depends_on = [
+    aws_s3_bucket.external_tables
+  ]
 }
 
 resource "aws_s3_bucket_public_access_block" "external_tables" {
@@ -31,6 +35,10 @@ resource "aws_s3_bucket_public_access_block" "external_tables" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+
+  depends_on = [
+    aws_s3_bucket.external_tables
+  ]
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "external_tables" {
@@ -44,6 +52,11 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "external_tables" 
       sse_algorithm     = "aws:kms"
     }
   }
+
+  depends_on = [
+    aws_s3_bucket.external_tables,
+    aws_kms_alias.external_tables_key
+  ]
 }
 
 resource "aws_s3_object" "external_tables_categories" {
@@ -57,6 +70,10 @@ resource "aws_s3_object" "external_tables_categories" {
 dummy;table
 0;0
 EOF
+
+  depends_on = [
+    aws_s3_bucket.external_tables
+  ]
 }
 
 data "aws_iam_policy_document" "external_tables_bucket_notifications" {
@@ -112,6 +129,7 @@ resource "aws_s3_bucket_notification" "external_tables_bucket_notifications" {
   }
 
   depends_on = [
+    aws_s3_bucket.external_tables,
     aws_sns_topic.external_tables_bucket_notifications
   ]
 }

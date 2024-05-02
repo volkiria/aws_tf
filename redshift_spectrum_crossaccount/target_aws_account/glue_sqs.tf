@@ -32,6 +32,10 @@ resource "aws_sqs_queue" "external_tables_crawler_bucket_notifications" {
   tags = {
     Name = local.external_tables_crawler_names[each.value]
   }
+
+  depends_on = [
+    data.aws_iam_policy_document.external_tables_crawler_bucket_notifications
+  ]
 }
 
 resource "aws_sns_topic_subscription" "external_tables_crawler_bucket_notifications" {

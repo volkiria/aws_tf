@@ -92,6 +92,11 @@ data "aws_iam_policy_document" "external_tables_crawler_access" {
       aws_sqs_queue.external_tables_crawler_bucket_notifications[each.value].arn,
     ]
   }
+
+  depends_on = [
+    aws_s3_bucket.external_tables,
+    aws_sqs_queue.external_tables_crawler_bucket_notifications
+  ]
 }
 
 resource "aws_iam_policy" "external_tables_crawler_access" {
@@ -106,6 +111,10 @@ resource "aws_iam_policy" "external_tables_crawler_access" {
   tags = {
     Name = local.external_tables_crawler_role_names[each.value]
   }
+
+  depends_on = [
+    data.aws_iam_policy_document.external_tables_crawler_access
+  ]
 }
 
 resource "aws_iam_role" "external_tables_crawler_access" {
@@ -132,6 +141,10 @@ EOF
   tags = {
     Name = local.external_tables_crawler_role_names[each.value]
   }
+
+  depends_on = [
+    aws_iam_policy.external_tables_crawler_access
+  ]
 }
 
 resource "aws_iam_role_policy_attachment" "external_tables_crawler_access_custom" {
@@ -140,6 +153,11 @@ resource "aws_iam_role_policy_attachment" "external_tables_crawler_access_custom
   for_each   = toset(var.tables_categories)
   role       = aws_iam_role.external_tables_crawler_access[each.value].name
   policy_arn = aws_iam_policy.external_tables_crawler_access[each.value].arn
+
+  depends_on = [
+    aws_iam_role.external_tables_crawler_access,
+    aws_iam_policy.external_tables_crawler_access
+  ]
 }
 
 resource "aws_iam_role_policy_attachment" "external_tables_crawler_access_awsglueservicerole" {
@@ -148,4 +166,8 @@ resource "aws_iam_role_policy_attachment" "external_tables_crawler_access_awsglu
   for_each   = toset(var.tables_categories)
   role       = aws_iam_role.external_tables_crawler_access[each.value].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+
+  depends_on = [
+    aws_iam_role.external_tables_crawler_access
+  ]
 }
