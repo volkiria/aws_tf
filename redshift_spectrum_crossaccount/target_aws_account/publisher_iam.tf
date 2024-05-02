@@ -45,6 +45,10 @@ resource "aws_iam_policy" "external_tables_publisher_access" {
   name   = local.external_tables_publisher_role_names[each.key]
   path   = "/"
   policy = data.aws_iam_policy_document.external_tables_publisher_access[each.key].json
+
+  tags = {
+    Name = local.external_tables_publisher_role_names[each.key]
+  }
 }
 
 resource "aws_iam_role" "external_tables_publisher_access" {
@@ -72,6 +76,10 @@ resource "aws_iam_role" "external_tables_publisher_access" {
   ]
 }
 EOF
+
+  tags = {
+    Name = local.external_tables_publisher_role_names[each.key]
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "external_tables_publisher_access" {

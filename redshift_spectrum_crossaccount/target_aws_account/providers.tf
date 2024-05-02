@@ -16,8 +16,8 @@ provider "aws" {
   profile = "ac-guru"
   default_tags {
     tags = {
-      environment = var.environment
-      purpose     = "Redshift Spectrum Demo"
+      eEvironment = var.environment
+      Purpose     = "Redshift Spectrum Demo"
     }
   }
 }
@@ -25,7 +25,7 @@ provider "aws" {
 
 # As of now "brainly/redshift" does not support profile to be defined in provider configuration,
 # hence when assume role is used for cross account access to redshift it needs environment to be configured properly
-# When Demo code is deployed with simple AWS CLI configuration via credentials file provider will require either
+# When Demo code is deployed with s imple AWS CLI configuration via credentials file provider will require either
 # AWS_PROFILE variable configured (e.g. AWS_PROFILE=<name> terraform ...) or "default" profile configured with credentials
 # from the account where assumed role is created
 provider "redshift" {

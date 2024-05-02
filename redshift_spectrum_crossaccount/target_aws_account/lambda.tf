@@ -22,6 +22,10 @@ resource "aws_lambda_function" "external_tables_trigger_crawler" {
       CRAWLER_NAME_PREFIX = local.crawler_name_prefix
     }
   }
+
+  tags = {
+    Name = "${var.environment}-${var.org_code}-exttables-trigger-crawler"
+  }
 }
 
 resource "aws_sns_topic_subscription" "external_tables_trigger_crawler" {
