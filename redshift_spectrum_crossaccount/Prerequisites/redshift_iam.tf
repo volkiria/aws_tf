@@ -24,6 +24,10 @@ resource "aws_iam_role" "external_tables_redshift_allow_assume" {
   ]
 }
 EOF
+
+  tags = {
+    Name = "${var.environment}-${var.org_code}-exttables-redshift-cluster"
+  }
 }
 
 data "aws_iam_policy_document" "external_tables_redshift_allow_assume" {
@@ -47,6 +51,10 @@ resource "aws_iam_policy" "external_tables_redshift_allow_assume" {
   name   = "${var.environment}-${var.org_code}-exttables-redshift-cluster-allow-assume"
   path   = "/"
   policy = data.aws_iam_policy_document.external_tables_redshift_allow_assume.json
+
+  tags = {
+    Name = "${var.environment}-${var.org_code}-exttables-redshift-cluster-allow-assume"
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "external_tables_redshift_allow_assume" {
@@ -80,6 +88,10 @@ resource "aws_iam_role" "deployment_role_redshift" {
   ]
 }
 EOF
+
+  tags = {
+    Name = "${var.environment}-${var.org_code}-redshift-deploy-role"
+  }
 }
 
 data "aws_iam_policy_document" "deployment_role_redshift" {
@@ -113,6 +125,10 @@ resource "aws_iam_policy" "deployment_role_redshift" {
   name   = "${var.environment}-${var.org_code}-redshift-deploy-role"
   path   = "/"
   policy = data.aws_iam_policy_document.deployment_role_redshift.json
+
+  tags = {
+    Name = "${var.environment}-${var.org_code}-redshift-deploy-role"
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "deployment_role_redshift" {

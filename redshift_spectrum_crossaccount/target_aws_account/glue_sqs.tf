@@ -20,7 +20,6 @@ data "aws_iam_policy_document" "external_tables_crawler_bucket_notifications" {
       values   = [aws_sns_topic.external_tables_bucket_notifications.arn]
     }
   }
-
 }
 
 resource "aws_sqs_queue" "external_tables_crawler_bucket_notifications" {
@@ -29,6 +28,10 @@ resource "aws_sqs_queue" "external_tables_crawler_bucket_notifications" {
   for_each = toset(var.tables_categories)
   name     = local.external_tables_crawler_names[each.value]
   policy   = data.aws_iam_policy_document.external_tables_crawler_bucket_notifications[each.value].json
+
+  tags = {
+    Name = local.external_tables_crawler_names[each.value]
+  }
 }
 
 resource "aws_sns_topic_subscription" "external_tables_crawler_bucket_notifications" {

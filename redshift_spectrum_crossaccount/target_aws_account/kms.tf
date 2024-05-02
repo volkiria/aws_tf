@@ -17,6 +17,10 @@ resource "aws_kms_key" "external_tables_key" {
   key_usage               = "ENCRYPT_DECRYPT"
   policy                  = data.aws_iam_policy_document.external_tables_key_access.json
   is_enabled              = true
+
+  tags = {
+    Name = "${var.environment}-${var.org_code}-exttables-key"
+  }
 }
 
 resource "aws_kms_alias" "external_tables_key" {

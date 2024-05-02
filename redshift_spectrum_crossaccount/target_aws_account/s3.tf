@@ -8,8 +8,7 @@ resource "aws_s3_bucket" "external_tables" {
   bucket = "${var.org_code}-${var.environment}-exttables"
 
   tags = {
-    Name        = "${var.org_code}-${var.environment}-exttables"
-    Environment = var.environment
+    Name = "${var.org_code}-${var.environment}-exttables"
   }
 }
 
@@ -87,6 +86,10 @@ resource "aws_sns_topic" "external_tables_bucket_notifications" {
 
   name   = "${var.environment}-${var.org_code}-external-tables-notifications"
   policy = data.aws_iam_policy_document.external_tables_bucket_notifications.json
+
+  tags = {
+    Name = "${var.environment}-${var.org_code}-external-tables-notifications"
+  }
 }
 
 resource "aws_s3_bucket_notification" "external_tables_bucket_notifications" {
