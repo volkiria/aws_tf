@@ -88,4 +88,9 @@ resource "aws_iam_role_policy_attachment" "external_tables_publisher_access" {
   for_each   = var.table_publishers
   role       = aws_iam_role.external_tables_publisher_access[each.key].name
   policy_arn = aws_iam_policy.external_tables_publisher_access[each.key].arn
+
+  depends_on = [
+    aws_iam_role.external_tables_publisher_access,
+    aws_iam_policy.external_tables_publisher_access
+  ]
 }

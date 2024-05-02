@@ -26,6 +26,10 @@ resource "aws_lambda_function" "external_tables_trigger_crawler" {
   tags = {
     Name = "${var.environment}-${var.org_code}-exttables-trigger-crawler"
   }
+
+  depends_on = [
+    aws_iam_role.external_tables_crawler_trigger_lambda_access
+  ]
 }
 
 resource "aws_sns_topic_subscription" "external_tables_trigger_crawler" {
@@ -34,6 +38,11 @@ resource "aws_sns_topic_subscription" "external_tables_trigger_crawler" {
   topic_arn = aws_sns_topic.external_tables_bucket_notifications.arn
   protocol  = "lambda"
   endpoint  = aws_lambda_function.external_tables_trigger_crawler.arn
+
+  depends_on = [
+    aws_sns_topic.external_tables_bucket_notifications,
+    aws_lambda_function.external_tables_trigger_crawler
+  ]
 }
 
 resource "aws_lambda_permission" "external_tables_bucket_notifications" {
@@ -44,4 +53,9 @@ resource "aws_lambda_permission" "external_tables_bucket_notifications" {
   function_name = aws_lambda_function.external_tables_trigger_crawler.function_name
   principal     = "sns.amazonaws.com"
   source_arn    = aws_sns_topic.external_tables_bucket_notifications.arn
+
+  depends_on = [
+    aws_lambda_function.external_tables_trigger_crawler,
+    aws_sns_topic.external_tables_bucket_notifications
+  ]
 }

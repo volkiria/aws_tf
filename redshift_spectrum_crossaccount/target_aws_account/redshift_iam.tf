@@ -129,4 +129,9 @@ resource "aws_iam_role_policy_attachment" "external_tables_redshift_access" {
   for_each   = toset(var.tables_categories)
   role       = aws_iam_role.external_tables_redshift_access[each.value].name
   policy_arn = aws_iam_policy.external_tables_redshift_access[each.value].arn
+
+  depends_on = [
+    aws_iam_role.external_tables_redshift_access,
+    aws_iam_policy.external_tables_redshift_access
+  ]
 }
