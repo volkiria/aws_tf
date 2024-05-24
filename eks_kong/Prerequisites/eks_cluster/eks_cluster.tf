@@ -38,7 +38,8 @@ resource "aws_eks_node_group" "demo" {
   depends_on = [
     aws_iam_role_policy_attachment.demo_eks_cluster_access,
     aws_iam_role_policy_attachment.demo_eks_nodegroup_access_AmazonEKSWorkerNodePolicy,
-    #    aws_iam_role_policy_attachment.eks_kong_nodegroup_access_AmazonEC2ContainerRegistryReadOnly,
+    aws_iam_role_policy_attachment.eks_kong_nodegroup_access_AmazonEC2ContainerRegistryReadOnly,
+    aws_iam_role_policy_attachment.eks_kong_nodegroup_access_AmazonEKS_CNI_Policy
   ]
 }
 
@@ -54,12 +55,3 @@ resource "aws_iam_openid_connect_provider" "demo" {
   thumbprint_list = [data.tls_certificate.demo.certificates[0].sha1_fingerprint]
 }
 
-#resource "aws_eks_identity_provider_config" "eks_kong" {
-#  cluster_name = aws_eks_cluster.demo.name
-#
-#  oidc {
-#    client_id                     = "your client_id"
-#    identity_provider_config_name = "example"
-#    issuer_url                    = "your issuer_url"
-#  }
-#}
