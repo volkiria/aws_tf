@@ -9,3 +9,9 @@ data "tls_certificate" "demo" {
 data "aws_iam_openid_connect_provider" "demo" {
   url = data.tls_certificate.demo.url
 }
+
+data "aws_vpc" "demo" {
+  tags = {
+    Name = "${var.environment}-${var.org_code}-demo"
+  }
+}

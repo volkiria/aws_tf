@@ -1,7 +1,7 @@
 resource "aws_eks_cluster" "demo" {
   name     = "${var.environment}-${var.org_code}-demo-cluster"
   role_arn = aws_iam_role.demo_eks_cluster_access.arn
-  version  = 1.27
+  version  = 1.29
 
   vpc_config {
     subnet_ids = [aws_subnet.demo_eks_private_b.id, aws_subnet.demo_eks_private_c.id]
@@ -12,6 +12,8 @@ resource "aws_eks_cluster" "demo" {
   ]
 }
 
+
+
 resource "aws_eks_node_group" "demo" {
   cluster_name    = aws_eks_cluster.demo.name
   node_group_name = "${var.environment}-${var.org_code}-demo-workers"
@@ -20,6 +22,7 @@ resource "aws_eks_node_group" "demo" {
     aws_subnet.demo_eks_private_b.id,
     aws_subnet.demo_eks_private_c.id
   ]
+
   instance_types = [
     "t3.medium",
     "t3.large"
@@ -27,7 +30,7 @@ resource "aws_eks_node_group" "demo" {
 
   scaling_config {
     desired_size = 2
-    max_size     = 2
+    max_size     = 3
     min_size     = 1
   }
 
@@ -38,8 +41,8 @@ resource "aws_eks_node_group" "demo" {
   depends_on = [
     aws_iam_role_policy_attachment.demo_eks_cluster_access,
     aws_iam_role_policy_attachment.demo_eks_nodegroup_access_AmazonEKSWorkerNodePolicy,
-    aws_iam_role_policy_attachment.eks_kong_nodegroup_access_AmazonEC2ContainerRegistryReadOnly,
-    aws_iam_role_policy_attachment.eks_kong_nodegroup_access_AmazonEKS_CNI_Policy
+    aws_iam_role_policy_attachment.demo_eks_kong_nodegroup_access_AmazonEC2ContainerRegistryReadOnly,
+    aws_iam_role_policy_attachment.demo_eks_kong_nodegroup_access_AmazonEKS_CNI_Policy
   ]
 }
 

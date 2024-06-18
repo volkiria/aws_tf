@@ -28,7 +28,7 @@ EOF
 }
 
 
-resource "aws_iam_role_policy_attachment" "eks_kong_nodegroup_access_AmazonEBSCSIDriverPolicy" {
+resource "aws_iam_role_policy_attachment" "demo_eks_kong_nodegroup_access_AmazonEBSCSIDriverPolicy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
   role       = aws_iam_role.demo_eks_ebs_csi_access.name
 }

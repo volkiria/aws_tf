@@ -15,7 +15,8 @@ resource "aws_subnet" "demo_eks_public" {
   map_public_ip_on_launch = false
 
   tags = {
-    Name = "${var.environment}-${var.org_code}-demo-public"
+    Name                     = "${var.environment}-${var.org_code}-demo-public"
+    "kubernetes.io/role/elb" = 1
   }
 }
 
@@ -26,7 +27,8 @@ resource "aws_subnet" "demo_eks_private_b" {
   map_public_ip_on_launch = false
 
   tags = {
-    Name = "${var.environment}-${var.org_code}-demo-eks-private-b"
+    Name                              = "${var.environment}-${var.org_code}-demo-eks-private-b"
+    "kubernetes.io/role/internal-elb" = 1
   }
 }
 
@@ -37,7 +39,8 @@ resource "aws_subnet" "demo_eks_private_c" {
   map_public_ip_on_launch = false
 
   tags = {
-    Name = "${var.environment}-${var.org_code}-demo-eks-private-c"
+    Name                              = "${var.environment}-${var.org_code}-demo-eks-private-c"
+    "kubernetes.io/role/internal-elb" = 1
   }
 }
 
